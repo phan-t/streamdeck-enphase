@@ -40,7 +40,7 @@ src/
   plugin.ts                     entry: registers actions, connects to Stream Deck
   render.ts                     barsImage()/errorImage() — SVG → setImage data URIs
   actions/
-    polling-action.ts           PollingAction base — per-key interval + lifecycle + draw
+    polling-action.ts           PollingAction base — one shared timer, fans poll to all keys
     overview.ts                  @action tphan.enphase.overview (both bars on one key)
   enphase/
     client.ts                   HTTP fetch of /production.json + shared cache
@@ -56,20 +56,27 @@ scripts/gen-icons.mjs           renders MDI solar-panel glyph → PNGs via @resv
 
 ## Architecture notes
 
-- **Rendering:** keys are drawn, not titled. `PollingAction.tick()` calls the
-  subclass `draw(readings, settings)` and pushes the result with
-  `action.setImage()` (SVG data URI); the manifest `States[].Image` is only the
-  static action-list icon. The title is cleared on appear. The single `Overview`
-  action draws two stacked bars via `barsImage()` (`src/render.ts`), which takes a
-  `BarRow[]` (label/watts/color/maxWatts — each row has its own full-scale).
+- **Polling:** `PollingAction` runs **one shared `setInterval`** (period = the
+  shortest `refreshSeconds` among visible keys) and **one** `poll()` per cycle that
+  fetches once and fans the result out to every key. Poll/error state is global
+  (all keys read the same gateway), so failures are logged once — not per key.
+  `poll()` guards against overlap (`this.polling`) and renders via `renderKey()`,
+  which paints only when the image actually changed (skips redundant `setImage`).
+- **Rendering:** keys are drawn, not titled. `renderKey()` calls the subclass
+  `draw(readings, settings)` and pushes the result with `action.setImage()` (SVG
+  data URI); the manifest `States[].Image` is only the static action-list icon. The
+  title is cleared on appear. The single `Overview` action draws two stacked bars
+  via `barsImage()` (`src/render.ts`), which takes a `BarRow[]`
+  (label/watts/color/maxWatts — each row has its own full-scale).
 - **Adding an action:** subclass `PollingAction` (`src/actions/polling-action.ts`),
   implement `draw(readings, settings): string` (return a data URI, e.g. from
   `barsImage()`), decorate with `@action({ UUID })`, and register it in
   `src/plugin.ts`. Also add a matching entry to `manifest.json` (`Actions[]`) with
   the same UUID and an `imgs/actions/<name>/` icon set.
 - **Shared cache:** `getReadings()` in `client.ts` caches for `CACHE_TTL_MS` and
-  de-duplicates concurrent calls, so N visible keys cause ~1 gateway request per
-  cycle. Pass `force = true` (key press) to bypass the cache.
+  de-duplicates concurrent calls. The shared poll already collapses to one fetch
+  per cycle; the cache additionally absorbs appear/settings/key-press bursts. Pass
+  `force = true` (key press) to bypass the cache.
 - **Gateway access:** plain HTTP on port 80 to the **unauthenticated**
   `/production.json` (via `node:http`, no `fetch`/undici, no extra deps, no token).
   This endpoint is only open on pre-v7 firmware; v7+ gateways return 401/403,

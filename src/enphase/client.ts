@@ -4,13 +4,34 @@ import type { EnphaseReadings, GlobalSettings, MeterReading, ProductionResponse 
 
 /** How long a fetched reading is reused so multiple keys share one request. */
 const CACHE_TTL_MS = 4_000;
-const REQUEST_TIMEOUT_MS = 8_000;
+const REQUEST_TIMEOUT_MS = 5_000;
 
 /** Errors with a user-facing message safe to show on a key / log. */
 export class EnphaseError extends Error {}
 
 let cache: { key: string; readings: EnphaseReadings } | undefined;
 let inflight: Promise<EnphaseReadings> | undefined;
+
+// Gateway host is read from global settings once and then kept fresh via the
+// change event, so steady-state polls don't make a settings round-trip each cycle.
+let cachedHost: string | undefined;
+let subscribed = false;
+
+const cleanHost = (host?: string): string | undefined => host?.trim() || undefined;
+
+async function gatewayHost(): Promise<string | undefined> {
+	if (!subscribed) {
+		subscribed = true;
+		streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>((ev) => {
+			cachedHost = cleanHost(ev.settings.host);
+		});
+	}
+	if (cachedHost === undefined) {
+		const settings = await streamDeck.settings.getGlobalSettings<GlobalSettings>();
+		cachedHost = cleanHost(settings.host);
+	}
+	return cachedHost;
+}
 
 /**
  * Fetch /production.json from the local gateway over plain HTTP.
@@ -87,12 +108,12 @@ function normalize(data: ProductionResponse): EnphaseReadings {
  * calls) so a Stream Deck full of keys hits the gateway once per cycle.
  */
 export async function getReadings(force = false): Promise<EnphaseReadings> {
-	const { host } = await streamDeck.settings.getGlobalSettings<GlobalSettings>();
+	const host = await gatewayHost();
 	if (!host) {
 		throw new EnphaseError("Set the gateway host in the action settings.");
 	}
 
-	const key = host.trim().toLowerCase();
+	const key = host.toLowerCase();
 	if (!force && cache?.key === key && Date.now() - cache.readings.fetchedAt < CACHE_TTL_MS) {
 		return cache.readings;
 	}
@@ -100,7 +121,7 @@ export async function getReadings(force = false): Promise<EnphaseReadings> {
 
 	inflight = (async () => {
 		try {
-			const readings = normalize(await fetchProduction(host.trim()));
+			const readings = normalize(await fetchProduction(host));
 			cache = { key, readings };
 			return readings;
 		} finally {

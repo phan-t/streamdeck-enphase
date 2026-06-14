@@ -1,5 +1,6 @@
 import commonjs from "@rollup/plugin-commonjs";
 import nodeResolve from "@rollup/plugin-node-resolve";
+import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
 import path from "node:path";
 import url from "node:url";
@@ -28,6 +29,8 @@ const config = {
 		typescript({ mapRoot: isWatching ? "./" : undefined }),
 		nodeResolve({ browser: false, exportConditions: ["node"], preferBuiltins: true }),
 		commonjs(),
+		// Minify production builds; keep watch/dev output readable for debugging.
+		!isWatching && terser(),
 		{
 			// Stream Deck loads the bundle as ESM; the bin/ folder needs its own type marker
 			// because the installed .sdPlugin folder has no package.json above it.

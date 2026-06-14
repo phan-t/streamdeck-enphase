@@ -65,8 +65,7 @@ export function barsImage({ rows }: { rows: BarRow[] }): string {
 	return toDataUri(svg);
 }
 
-/** Fallback image shown when the gateway can't be reached / isn't configured. */
-export function errorImage(label = "Enphase"): string {
+function buildErrorImage(label: string): string {
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
 	<rect width="${SIZE}" height="${SIZE}" fill="#000000"/>
 	<text x="${SIZE / 2}" y="38" text-anchor="middle" font-family="${FONT}" font-size="24" font-weight="600" fill="#FFFFFF">${escapeXml(label)}</text>
@@ -75,4 +74,13 @@ export function errorImage(label = "Enphase"): string {
 </svg>`;
 
 	return toDataUri(svg);
+}
+
+let cachedDefaultError: string | undefined;
+
+/** Fallback image shown when the gateway can't be reached / isn't configured. */
+export function errorImage(label = "Enphase"): string {
+	// The default-label image is a constant rendered on every failing poll — cache it.
+	if (label === "Enphase") return (cachedDefaultError ??= buildErrorImage(label));
+	return buildErrorImage(label);
 }

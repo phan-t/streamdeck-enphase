@@ -3,7 +3,7 @@
 	"UUID": "tphan.enphase",
 	"Name": "Enphase Solar",
 	"Version": "0.1.0.0",
-	"Author": "TP Studios",
+	"Author": "Tony Phan",
 	"Description": "Show live solar production and consumption from your local Enphase IQ Gateway (Envoy) on your Stream Deck.",
 	"Category": "Enphase Solar",
 	"CategoryIcon": "imgs/plugin/category-icon",
