@@ -1,0 +1,7 @@
+node_modules/
+.claude/settings.local.json
+tphan.enphase.sdPlugin/bin/
+tphan.enphase.sdPlugin/logs/
+*.streamDeckPlugin
+*.log
+.DS_Store

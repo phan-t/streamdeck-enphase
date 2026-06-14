@@ -1,0 +1,50 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"UUID": "tphan.enphase",
+	"Name": "Enphase Solar",
+	"Version": "0.1.0.0",
+	"Author": "TP Studios",
+	"Description": "Show live solar production and consumption from your local Enphase IQ Gateway (Envoy) on your Stream Deck.",
+	"Category": "Enphase Solar",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"Icon": "imgs/plugin/icon",
+	"URL": "https://github.com/phan-t/streamdeck-enphase",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"CodePath": "bin/plugin.js",
+	"Actions": [
+		{
+			"Name": "Production & Consumption",
+			"UUID": "tphan.enphase.overview",
+			"Icon": "imgs/actions/overview/icon",
+			"Tooltip": "Live solar production and household consumption from your Enphase gateway.",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/inspector.html",
+			"States": [
+				{
+					"Image": "imgs/actions/overview/key",
+					"TitleAlignment": "middle",
+					"FontSize": 14
+				}
+			]
+		}
+	]
+}

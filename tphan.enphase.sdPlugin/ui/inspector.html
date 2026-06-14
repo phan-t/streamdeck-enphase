@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+	</head>
+	<body>
+		<!-- host uses `global` so every key shares one gateway connection. -->
+		<sdpi-item label="Gateway host">
+			<sdpi-textfield setting="host" global placeholder="envoy.local" required></sdpi-textfield>
+		</sdpi-item>
+
+		<sdpi-item label="Refresh">
+			<sdpi-range setting="refreshSeconds" min="5" max="120" step="5" default="15" showlabels></sdpi-range>
+		</sdpi-item>
+
+		<sdpi-item label="Production scale (W)">
+			<sdpi-range setting="productionMax" min="500" max="15000" step="500" default="6000" showlabels></sdpi-range>
+		</sdpi-item>
+
+		<sdpi-item label="Consumption scale (W)">
+			<sdpi-range setting="consumptionMax" min="500" max="15000" step="500" default="6000" showlabels></sdpi-range>
+		</sdpi-item>
+
+		<sdpi-item label="Help">
+			<div style="font-size: 11px; line-height: 1.4; opacity: 0.85">
+				Reads the gateway's unauthenticated <code>/production.json</code> over HTTP.
+				The host is usually <code>envoy.local</code> or the gateway's LAN IP.
+				This works on older firmware (pre-v7); firmware v7+ requires a token and
+				will report a setup error.
+			</div>
+		</sdpi-item>
+	</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "streamdeck-enphase",
+  "version": "0.1.0",
+  "description": "Elgato Stream Deck plugin showing live Enphase solar data from a local IQ Gateway (Envoy).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart tphan.enphase\"",
+    "lint": "tsc --noEmit",
+    "gen:icons": "node scripts/gen-icons.mjs"
+  },
+  "author": "TP Studios",
+  "license": "MIT",
+  "dependencies": {
+    "@elgato/streamdeck": "^1.0.0"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.1.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-typescript": "^12.1.0",
+    "@types/node": "^22.0.0",
+    "rollup": "^4.24.0",
+    "tslib": "^2.7.0",
+    "typescript": "^5.6.0"
+  }
+}
