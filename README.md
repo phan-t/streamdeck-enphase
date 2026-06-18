@@ -9,7 +9,7 @@ One action — **Production & Consumption** (`tphan.enphase.overview`) — fills
 - **yellow** — solar production
 - **red** — household consumption
 
-Each bar has its own full-scale value (the watts that equal a 100%-filled bar), configurable independently — **Production scale** and **Consumption scale** (default 6000 W each). Press the key to force an immediate refresh; otherwise it polls on its configured interval (default 15s).
+Each bar has its own full-scale value (the watts that equal a 100%-filled bar), configurable independently — **Production scale** and **Consumption scale** (default 6000 W each). Press the key to force an immediate refresh; otherwise it polls on its configured interval (default 15s). If the gateway can't be reached, the last reading stays on the key but **dims** to show it's no longer live.
 
 ## Requirements
 

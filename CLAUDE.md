@@ -62,12 +62,19 @@ scripts/gen-icons.mjs           renders MDI solar-panel glyph → PNGs via @resv
   (all keys read the same gateway), so failures are logged once — not per key.
   `poll()` guards against overlap (`this.polling`) and renders via `renderKey()`,
   which paints only when the image actually changed (skips redundant `setImage`).
+- **Stale / error states:** `renderKey()` keeps the last good reading on screen
+  during failures, but **dims** it (passes `stale = true` to `draw`) once the
+  reading is older than `STALE_AFTER_PERIODS` × the poll period (~2 missed polls,
+  so a single timeout doesn't flicker). The ⚠ `errorImage()` shows **only** when
+  the gateway has never been read (host unset / never reachable) — there's no
+  failure-count error fallback once data exists. No `showAlert`; the dim is the cue.
 - **Rendering:** keys are drawn, not titled. `renderKey()` calls the subclass
-  `draw(readings, settings)` and pushes the result with `action.setImage()` (SVG
-  data URI); the manifest `States[].Image` is only the static action-list icon. The
-  title is cleared on appear. The single `Overview` action draws two stacked bars
-  via `barsImage()` (`src/render.ts`), which takes a `BarRow[]`
-  (label/watts/color/maxWatts — each row has its own full-scale).
+  `draw(readings, settings, stale)` and pushes the result with `action.setImage()`
+  (SVG data URI); the manifest `States[].Image` is only the static action-list icon.
+  The title is cleared on appear. The single `Overview` action draws two stacked
+  bars via `barsImage()` (`src/render.ts`), which takes a `BarRow[]`
+  (label/watts/color/maxWatts — each row has its own full-scale) and a `stale` flag
+  that wraps the gauges in `<g opacity="0.5">`.
 - **Adding an action:** subclass `PollingAction` (`src/actions/polling-action.ts`),
   implement `draw(readings, settings): string` (return a data URI, e.g. from
   `barsImage()`), decorate with `@action({ UUID })`, and register it in

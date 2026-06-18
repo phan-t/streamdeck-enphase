@@ -30,9 +30,11 @@ export type BarRow = {
 
 /**
  * Stacked horizontal bar gauges on one key — one row per reading. Each row has
- * its own `maxWatts` scale.
+ * its own `maxWatts` scale. When `stale` is set (the gateway can't be read), the
+ * gauges are dimmed to 50% so the last-good reading stays visible but reads as
+ * "not live".
  */
-export function barsImage({ rows }: { rows: BarRow[] }): string {
+export function barsImage({ rows, stale = false }: { rows: BarRow[]; stale?: boolean }): string {
 	const blockH = (SIZE - MARGIN * 2) / rows.length;
 
 	const body = rows
@@ -57,9 +59,12 @@ export function barsImage({ rows }: { rows: BarRow[] }): string {
 		})
 		.join("\n\t");
 
+	// Dim the gauges (over the black background) when the reading is stale.
+	const content = stale ? `<g opacity="0.5">${body}</g>` : body;
+
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
 	<rect width="${SIZE}" height="${SIZE}" fill="#000000"/>
-	${body}
+	${content}
 </svg>`;
 
 	return toDataUri(svg);

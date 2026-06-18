@@ -16,11 +16,11 @@ const DEFAULT_REFRESH_SECONDS = 15;
 const MIN_REFRESH_SECONDS = 5;
 
 /**
- * The IQ Gateway's embedded web server frequently drops/refuses connections, so
- * individual polls fail often. Keep showing the last good reading through this
- * many consecutive failures before falling back to the error image.
+ * The gateway drops ~half of polls even when healthy, so a single miss shouldn't
+ * change anything. Once the last good reading is older than this many poll
+ * periods, the key dims to read as "stale / not live".
  */
-const MAX_FAILURES_BEFORE_ERROR = 5;
+const STALE_AFTER_PERIODS = 2.5;
 
 /** One visible key (action context) the plugin is currently driving. */
 type KeyEntry = {
@@ -46,11 +46,14 @@ export abstract class PollingAction extends SingletonAction<ActionSettings> {
 	private polling = false;
 
 	private lastReadings?: EnphaseReadings;
-	private failures = 0;
-	private errored = false;
+	/** True while polls are currently failing — used to log transitions once. */
+	private failing = false;
 
-	/** Subclasses turn readings + settings into a key image (data URI). */
-	protected abstract draw(readings: EnphaseReadings, settings: ActionSettings): string;
+	/**
+	 * Subclasses turn readings + settings into a key image (data URI). `stale` is
+	 * true when the reading is too old to be considered live (dim it).
+	 */
+	protected abstract draw(readings: EnphaseReadings, settings: ActionSettings, stale: boolean): string;
 
 	override async onWillAppear(ev: WillAppearEvent<ActionSettings>): Promise<void> {
 		void ev.action.setTitle(""); // labels are baked into the image
@@ -115,48 +118,46 @@ export abstract class PollingAction extends SingletonAction<ActionSettings> {
 		if (this.keys.size === 0 || this.polling) return;
 		this.polling = true;
 		try {
-			let enteredError = false;
 			try {
 				this.lastReadings = await getReadings(force);
-				this.failures = 0;
-				if (this.errored) {
+				if (this.failing) {
 					streamDeck.logger.info("Enphase poll recovered.");
-					this.errored = false;
+					this.failing = false;
 				}
 			} catch (err) {
-				this.failures += 1;
-				// Ride out transient failures by keeping the last good reading on screen;
-				// only fall to the error image once there's nothing good or it stays down.
-				const showError = !this.lastReadings || this.failures >= MAX_FAILURES_BEFORE_ERROR;
-				if (showError && !this.errored) {
+				// Keep the last good reading on screen (it dims once stale); only show the
+				// error image when there's never been a reading. Log once per outage.
+				if (!this.failing) {
 					const message = err instanceof EnphaseError ? err.message : String(err);
-					streamDeck.logger.warn(`Enphase poll failing: ${message}`);
-					this.errored = true;
-					enteredError = true;
+					const mode = this.lastReadings ? "showing last reading" : "no data yet";
+					streamDeck.logger.warn(`Enphase poll failing (${mode}): ${message}`);
+					this.failing = true;
 				}
 			}
 
 			await Promise.all([...this.keys.values()].map((entry) => this.renderKey(entry)));
-
-			// Alert each key once, only on the transition into the error state.
-			if (enteredError) {
-				await Promise.all([...this.keys.values()].map((entry) => entry.action.showAlert()));
-			}
 		} finally {
 			this.polling = false;
 		}
 	}
 
+	/** Number of ms after which the last good reading is considered stale. */
+	private staleThresholdMs(): number {
+		const period = this.timerPeriodMs || DEFAULT_REFRESH_SECONDS * 1_000;
+		return period * STALE_AFTER_PERIODS;
+	}
+
 	/** Render one key from the current global state, painting only if it changed. */
 	private renderKey(entry?: KeyEntry): Promise<void> {
 		if (entry === undefined) return Promise.resolve();
-		let image: string | undefined;
-		if (this.errored) {
-			image = errorImage();
-		} else if (this.lastReadings) {
-			image = this.draw(this.lastReadings, entry.settings);
+		let image: string;
+		if (this.lastReadings) {
+			const stale = Date.now() - this.lastReadings.fetchedAt > this.staleThresholdMs();
+			image = this.draw(this.lastReadings, entry.settings, stale);
+		} else {
+			image = errorImage(); // never read the gateway — show the setup hint
 		}
-		if (image === undefined || entry.lastImage === image) return Promise.resolve();
+		if (entry.lastImage === image) return Promise.resolve();
 		entry.lastImage = image;
 		return entry.action.setImage(image);
 	}
