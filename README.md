@@ -2,6 +2,10 @@
 
 An Elgato Stream Deck plugin that shows live solar **production** and household **consumption** (watts) read directly from a local Enphase **IQ Gateway / Envoy** on your network — no cloud round-trip.
 
+![Live, stale, and setup states of the Enphase key](docs/keys.svg)
+
+From left to right: a live key, the same reading **dimmed** when the gateway can't be reached, and the **setup** prompt shown before a gateway host is configured.
+
 ## Action
 
 One action — **Production & Consumption** (`tphan.enphase.overview`) — fills a single key with two stacked horizontal bars, each labelled with its live watt value:
